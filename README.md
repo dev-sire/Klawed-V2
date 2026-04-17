@@ -126,8 +126,3 @@ Claw Code is built in the open alongside the broader UltraWorkers toolchain:
 - [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode)
 - [oh-my-codex](https://github.com/Yeachan-Heo/oh-my-codex)
 - [UltraWorkers Discord](https://discord.gg/5TUQKqFWd)
-
-## Ownership / affiliation disclaimer
-
-- This repository does **not** claim ownership of the original Claude Code source material.
-- This repository is **not affiliated with, endorsed by, or maintained by Anthropic**.
