@@ -2429,6 +2429,18 @@ pub fn handle_agents_slash_command_json(args: Option<&str>, cwd: &Path) -> std::
         }
         Some(args) if args.starts_with("list ") => {
             let filter = args["list ".len()..].trim().to_lowercase();
+            // #792: unknown flags (--something) silently became filter strings, returning
+            // empty success list instead of an error. Detect and reject flag-shaped tokens.
+            if filter.starts_with('-') {
+                return Ok(serde_json::json!({
+                    "kind": "agents",
+                    "action": "list",
+                    "status": "error",
+                    "error_kind": "unknown_option",
+                    "unexpected": filter,
+                    "hint": "Usage: claw agents list [<filter>]\nFilters are name substrings, not flags.",
+                }));
+            }
             let roots = discover_definition_roots(cwd, "agents");
             let agents = load_agents_from_roots(&roots)?;
             let filtered: Vec<_> = agents
@@ -2582,6 +2594,18 @@ pub fn handle_skills_slash_command_json(args: Option<&str>, cwd: &Path) -> std::
         }
         Some(args) if args.starts_with("list ") => {
             let filter = args["list ".len()..].trim().to_lowercase();
+            // #792: flag-shaped tokens silently became filter strings, returning
+            // empty success list instead of an error. Detect and reject them.
+            if filter.starts_with('-') {
+                return Ok(serde_json::json!({
+                    "kind": "skills",
+                    "action": "list",
+                    "status": "error",
+                    "error_kind": "unknown_option",
+                    "unexpected": filter,
+                    "hint": "Usage: claw skills list [<filter>]\nFilters are name substrings, not flags.",
+                }));
+            }
             let roots = discover_skill_roots(cwd);
             let skills = load_skills_from_roots(&roots)?;
             let filtered: Vec<_> = skills

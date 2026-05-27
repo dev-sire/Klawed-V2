@@ -2971,3 +2971,95 @@ fn config_extra_args_have_non_null_hint_791() {
         "config set extra arg must have non-null hint (#791)"
     );
 }
+
+#[test]
+fn agents_list_flag_shaped_filter_returns_unknown_option_792() {
+    // #792: `claw --output-format json agents list --bogus-flag` silently returned
+    // status:"ok" count:0 instead of an error. The list filter arm in
+    // handle_agents_slash_command_json treated "--bogus-flag" as a name substring
+    // filter (no agents match), producing a false-positive empty success result.
+    // Fix: detect filter tokens starting with "-" and return unknown_option + hint.
+    let root = unique_temp_dir("agents-list-flag-792");
+    fs::create_dir_all(&root).expect("temp dir");
+    std::process::Command::new("git")
+        .args(["init", "-q"])
+        .current_dir(&root)
+        .output()
+        .ok();
+
+    let output = run_claw(
+        &root,
+        &[
+            "--output-format",
+            "json",
+            "agents",
+            "list",
+            "--unknown-flag",
+        ],
+        &[],
+    );
+    assert!(
+        !output.status.success(),
+        "agents list --unknown-flag must exit non-zero (#792)"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let j: serde_json::Value = serde_json::from_str(stdout.trim())
+        .expect("agents list flag-filter should emit valid JSON");
+    assert_eq!(
+        j["error_kind"], "unknown_option",
+        "agents list flag-shaped filter must return unknown_option, got {:?}",
+        j["error_kind"]
+    );
+    assert_eq!(j["status"], "error");
+    let h = j["hint"]
+        .as_str()
+        .expect("unknown_option must have hint (#792)");
+    assert!(
+        h.contains("claw agents list") || h.contains("filter"),
+        "hint should reference correct usage, got: {h:?}"
+    );
+}
+
+#[test]
+fn skills_list_flag_shaped_filter_returns_unknown_option_792() {
+    // #792: same gap as agents — `claw skills list --bogus-flag` returned success
+    // with empty list instead of unknown_option error.
+    let root = unique_temp_dir("skills-list-flag-792");
+    fs::create_dir_all(&root).expect("temp dir");
+    std::process::Command::new("git")
+        .args(["init", "-q"])
+        .current_dir(&root)
+        .output()
+        .ok();
+
+    let output = run_claw(
+        &root,
+        &[
+            "--output-format",
+            "json",
+            "skills",
+            "list",
+            "--unknown-flag",
+        ],
+        &[],
+    );
+    assert!(
+        !output.status.success(),
+        "skills list --unknown-flag must exit non-zero (#792)"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let j: serde_json::Value = serde_json::from_str(stdout.trim())
+        .expect("skills list flag-filter should emit valid JSON");
+    assert_eq!(
+        j["error_kind"], "unknown_option",
+        "skills list flag-shaped filter must return unknown_option, got {:?}",
+        j["error_kind"]
+    );
+    assert_eq!(j["status"], "error");
+    assert!(
+        j["hint"]
+            .as_str()
+            .is_some_and(|h| h.contains("claw skills list") || h.contains("filter")),
+        "hint should reference correct usage (#792)"
+    );
+}
